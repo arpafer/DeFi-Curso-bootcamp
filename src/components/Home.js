@@ -1,6 +1,5 @@
 import React, { Component } from 'react';
 
-import smart_contract from '../abis/Migrations.json';
 import JamToken from '../abis/JamToken.json';
 import StellartToken from '../abis/StellartToken.json';
 import TokenFarm from '../abis/TokenFarm.json';
@@ -40,16 +39,31 @@ class App extends Component {
     const accounts = await web3.eth.getAccounts()
     this.setState({ account: accounts[0] });    
     // Ganache -> 5777, Rinkeby -> 4, BSC -> 97
-    const networkId = await web3.eth.net.getId() 
-    console.log('networkid:', networkId)
-    const jamTokenData = JamToken.networks[networkId];
-    if (jamTokenData) {
-      const jamToken = new web3.eth.Contract(JamToken.abi, jamTokenData.address);
-      this.setState({jamToken: jamToken});
-      let jamTokenBalance = await jamToken.methods.balanceOf(this.state.account).call();      
-      this.setState({jamTokenBalance: jamTokenBalance.toString()});
+    const networkId = await web3.eth.net.getId()     
+    this.loadToken(JamToken, "jamToken");
+    this.loadToken(StellartToken, "stellartToken");
+    this.loadToken(TokenFarm, "tokenFarm");
+    this.setState({loading: false});    
+  }
+
+  async loadToken(tokenAbi, tokenName) {
+    const web3 = window.web3    
+    const networkId = await web3.eth.net.getId();
+    const tokenData = tokenAbi.networks[networkId];
+    if (tokenData) {
+      const tokenContract = new web3.eth.Contract(tokenAbi.abi, tokenData.address);
+      this.setState({tokenName: tokenContract});
+      let tokenBalance = {};
+      if (tokenName.indexOf("Farm") > 0) {
+         tokenBalance = await tokenContract.methods.stakingBalance(this.state.account).call();
+      } else {
+          tokenBalance = await tokenContract.methods.balanceOf(this.state.account).call();      
+      }
+      let tokenBalanceProp = tokenName + "Balance";
+      this.setState({tokenBalanceProp: tokenBalance.toString()});
+      // console.log("Balance " + tokenName + ": " + tokenBalance);
     } else {
-      window.alert("El JamToken no se ha desplegado en la red");
+      window.alert("El " + tokenName + " no se ha desplegado en la red");
     }
   }
 
@@ -59,7 +73,11 @@ class App extends Component {
       account: '0x0',
       loading: true,
       jamToken: {},
-      jamTokenBalance: '0'
+      jamTokenBalance: '0',
+      stellartToken: {},
+      stellarTokenBalance: '0',
+      tokenFarm: {},
+      tokenFarmBalance: '0'
     }
   }
 
