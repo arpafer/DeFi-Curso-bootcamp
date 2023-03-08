@@ -38,22 +38,18 @@ class App extends Component {
   async loadBlockchainData() {
     const web3 = window.web3
     const accounts = await web3.eth.getAccounts()
-    this.setState({ account: accounts[0] })
+    this.setState({ account: accounts[0] });    
     // Ganache -> 5777, Rinkeby -> 4, BSC -> 97
     const networkId = await web3.eth.net.getId() 
     console.log('networkid:', networkId)
-    const networkData = smart_contract.networks[networkId]
-    console.log('NetworkData:', networkData)
-
-    if (networkData) {
-      const abi = smart_contract.abi
-      console.log('abi', abi)
-      const address = networkData.address
-      console.log('address:', address)
-      const contract = new web3.eth.Contract(abi, address)
-      this.setState({ contract })
+    const jamTokenData = JamToken.networks[networkId];
+    if (jamTokenData) {
+      const jamToken = new web3.eth.Contract(JamToken.abi, jamTokenData.address);
+      this.setState({jamToken: jamToken});
+      let jamTokenBalance = await jamToken.methods.balanceOf(this.state.account).call();      
+      this.setState({jamTokenBalance: jamTokenBalance.toString()});
     } else {
-      window.alert('¡El Smart Contract no se ha desplegado en la red!')
+      window.alert("El JamToken no se ha desplegado en la red");
     }
   }
 
@@ -61,7 +57,9 @@ class App extends Component {
     super(props)
     this.state = {
       account: '0x0',
-      loading: true
+      loading: true,
+      jamToken: {},
+      jamTokenBalance: '0'
     }
   }
 
