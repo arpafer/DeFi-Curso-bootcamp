@@ -8,6 +8,7 @@ import Web3 from 'web3';
 
 import Navigation from './Navbar';
 import MyCarousel from './Carousel';
+import Main from './Main';
 
 class App extends Component {
 
@@ -71,7 +72,7 @@ class App extends Component {
     super(props)
     this.state = {
       account: '0x0',
-      loading: true,
+      loading: false,
       jamToken: {},
       jamTokenBalance: '0',
       stellartToken: {},
@@ -81,7 +82,38 @@ class App extends Component {
     }
   }
 
+  stakeTokens = (amount) => {
+    this.setState({loading: true});
+    this.state.jamToken.methods.approve(this.state.tokenFarm._address, amount).send({from: this.state.account})
+    .on('transactionHash', (hash) => {
+       this.state.tokenFarm.methods.stakeTokens(amount).send({from: this.state.account})
+       .on('transactionHash', (hash) => {
+         this.setState({loading: false});
+       });
+    });
+  }
+
+  unstakeTokens = (amount) => {
+    this.setState({loading: true});
+    this.state.TokenFarm.methods.unstakeTokens().send({from: this.state.account})
+      .on("transactionHash", (hash) => {
+        this.setState({loading: false});
+      })
+  }
+
   render() {
+    let content;
+    if (this.state.loading) {
+       content = <p id="loader" className='text-center'>Loading...</p>
+    } else {
+      content = <Main 
+         jamTokenBalance={this.state.jamTokenBalance}
+         stellartTokenBalance={this.state.stellarTokenBalance}
+         tokenFarmBalance={this.state.tokenFarmBalance}
+         stakeTokens={this.stateTokens}
+         unstakeTokens={this.unstakeTokens}
+      />
+    }
     return (
       <div>
         <Navigation account={this.state.account} />
@@ -90,7 +122,7 @@ class App extends Component {
           <div className="row">
             <main role="main" className="col-lg-12 d-flex text-center">
               <div className="content mr-auto ml-auto">
-                 
+                 {content}
               </div>
             </main>
           </div>
