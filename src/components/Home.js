@@ -39,8 +39,7 @@ class App extends Component {
     const web3 = window.web3
     const accounts = await web3.eth.getAccounts()
     this.setState({ account: accounts[0] });    
-    // Ganache -> 5777, Rinkeby -> 4, BSC -> 97
-    const networkId = await web3.eth.net.getId()     
+    // Ganache -> 5777, Rinkeby -> 4, BSC -> 97      
     this.loadToken(JamToken, "jamToken");
     this.loadToken(StellartToken, "stellartToken");
     this.loadToken(TokenFarm, "tokenFarm");
@@ -53,16 +52,28 @@ class App extends Component {
     const tokenData = tokenAbi.networks[networkId];
     if (tokenData) {
       const tokenContract = new web3.eth.Contract(tokenAbi.abi, tokenData.address);
-      this.setState({tokenName: tokenContract});
+      if (tokenName === "jamToken")
+         this.setState({jamToken: tokenContract});
+      else if (tokenName === "stellartToken")
+         this.setState({stellartToken: tokenContract});
+      else 
+         this.setState({tokenFarm: tokenContract});
+
       let tokenBalance = {};
       if (tokenName.indexOf("Farm") > 0) {
          tokenBalance = await tokenContract.methods.stakingBalance(this.state.account).call();
       } else {
           tokenBalance = await tokenContract.methods.balanceOf(this.state.account).call();      
-      }
-      let tokenBalanceProp = tokenName + "Balance";
-      this.setState({tokenBalanceProp: tokenBalance.toString()});
+      }      
+      if (tokenName === "jamToken")
+         this.setState({jamTokenBalance: tokenBalance.toString()});
+      else if (tokenName === "stellartToken") 
+         this.setState({stellartTokenBalance: tokenBalance.toString()});
+      else 
+         this.setState({tokenFarmBalance: tokenBalance.toString()});
       // console.log("Balance " + tokenName + ": " + tokenBalance);
+
+      console.log(this.state);
     } else {
       window.alert("El " + tokenName + " no se ha desplegado en la red");
     }
@@ -76,7 +87,7 @@ class App extends Component {
       jamToken: {},
       jamTokenBalance: '0',
       stellartToken: {},
-      stellarTokenBalance: '0',
+      stellartTokenBalance: '0',
       tokenFarm: {},
       tokenFarmBalance: '0'
     }
@@ -84,9 +95,10 @@ class App extends Component {
 
   stakeTokens = (amount) => {
     this.setState({loading: true});
+    console.log(this.state);
     this.state.jamToken.methods.approve(this.state.tokenFarm._address, amount).send({from: this.state.account})
     .on('transactionHash', (hash) => {
-       this.state.tokenFarm.methods.stakeTokens(amount).send({from: this.state.account})
+       this.state.tokenFarm.methods.stateTokens(amount).send({from: this.state.account})
        .on('transactionHash', (hash) => {
          this.setState({loading: false});
        });
@@ -95,22 +107,20 @@ class App extends Component {
 
   unstakeTokens = (amount) => {
     this.setState({loading: true});
-    this.state.TokenFarm.methods.unstakeTokens().send({from: this.state.account})
+    this.state.tokenFarm.methods.unstakeTokens().send({from: this.state.account})
       .on("transactionHash", (hash) => {
         this.setState({loading: false});
       })
   }
 
-  render() {
-    let content;
-    if (this.state.loading) {
-       content = <p id="loader" className='text-center'>Loading...</p>
-    } else {
+  render() {        
+    let content = <p id="loader" className='text-center'>Loading...</p>;
+    if (!this.state.loading) {
       content = <Main 
          jamTokenBalance={this.state.jamTokenBalance}
-         stellartTokenBalance={this.state.stellarTokenBalance}
+         stellartTokenBalance={this.state.stellartTokenBalance}
          tokenFarmBalance={this.state.tokenFarmBalance}
-         stakeTokens={this.stateTokens}
+         stakeTokens={this.stakeTokens}
          unstakeTokens={this.unstakeTokens}
       />
     }
@@ -122,7 +132,7 @@ class App extends Component {
           <div className="row">
             <main role="main" className="col-lg-12 d-flex text-center">
               <div className="content mr-auto ml-auto">
-                 {content}
+                  {content}
               </div>
             </main>
           </div>
